@@ -7,9 +7,15 @@ import android.graphics.drawable.Drawable;
 import android.location.Location;
 import ca.ubc.cs.cpsc210.translink.BusesAreUs;
 import ca.ubc.cs.cpsc210.translink.R;
+import ca.ubc.cs.cpsc210.translink.model.Route;
 import ca.ubc.cs.cpsc210.translink.model.Stop;
+import ca.ubc.cs.cpsc210.translink.model.StopManager;
+import ca.ubc.cs.cpsc210.translink.util.Geometry;
+import ca.ubc.cs.cpsc210.translink.util.LatLon;
 import org.osmdroid.bonuspack.clustering.RadiusMarkerClusterer;
 import org.osmdroid.bonuspack.overlays.Marker;
+import org.osmdroid.bonuspack.overlays.MarkerInfoWindow;
+import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 
 import java.util.HashMap;
@@ -32,6 +38,8 @@ public class BusStopPlotter extends MapViewOverlay {
     private Activity activity;
     private StopInfoWindow stopInfoWindow;
 
+
+
     /**
      * Constructor
      *
@@ -44,6 +52,7 @@ public class BusStopPlotter extends MapViewOverlay {
         nearestStnMarker = null;
         stopInfoWindow = new StopInfoWindow((StopSelectionListener) activity, mapView);
         newStopClusterer();
+
     }
 
     public RadiusMarkerClusterer getStopClusterer() {
@@ -54,10 +63,41 @@ public class BusStopPlotter extends MapViewOverlay {
      * Mark all visible stops in stop manager onto map.
      */
     public void markStops(Location currentLocation) {
+        newStopClusterer();
         Drawable stopIconDrawable = activity.getResources().getDrawable(R.drawable.stop_icon);
-
-        // TODO: complete the implementation of this method (Task 5)
+        updateVisibleArea();
+        for (Stop s : StopManager.getInstance()) {
+            if (Geometry.rectangleContainsPoint(northWest, southEast, s.getLocn())) {
+                Marker marker = new Marker(mapView);
+                GeoPoint geoPoint = Geometry.gpFromLatLon(s.getLocn());
+                marker.setRelatedObject(s);
+                setMarker(s, marker);
+                marker.setPosition(geoPoint);
+                marker.setIcon(stopIconDrawable);
+                stopClusterer.add(marker);
+                marker.setTitle(s.getNumber() + " " + s.getName() + prodRouteNumber(s));
+                marker.setInfoWindow(stopInfoWindow);
+            }else {
+                clearMarker(s);
+            }
+        }
+        if (currentLocation != null) {
+            LatLon latLon = new LatLon(currentLocation.getLatitude(), currentLocation.getLongitude());
+            Stop nearestStop = StopManager.getInstance().findNearestTo(latLon);
+            updateMarkerOfNearest(nearestStop);
+        }
     }
+
+    private String prodRouteNumber(Stop s) {
+        StringBuilder f = new StringBuilder();
+        for (Route r : s.getRoutes()) {
+            f.append("\n");
+            f.append(r.getNumber());
+
+        }
+        return f.toString();
+    }
+
 
     /**
      * Create a new stop cluster object used to group stops that are close by to reduce screen clutter
@@ -86,9 +126,24 @@ public class BusStopPlotter extends MapViewOverlay {
     public void updateMarkerOfNearest(Stop nearest) {
         Drawable stopIconDrawable = activity.getResources().getDrawable(R.drawable.stop_icon);
         Drawable closestStopIconDrawable = activity.getResources().getDrawable(R.drawable.closest_stop_icon);
+        Marker closest = getMarker(nearest);
+        if (!(nearestStnMarker == null)) {
+            nearestStnMarker.setIcon(stopIconDrawable);
+            nearestStnMarker = null;
+        }
+        if (!(nearest == null)) {
+            for (Marker m : stopClusterer.getItems()) {
+                if (m.getRelatedObject() == nearest) {
+                    m.setIcon(closestStopIconDrawable);
+                    nearestStnMarker = closest;
+                }
+            }
+        }
+    }
 
         // TODO: complete the implementation of this method (Task 6)
-    }
+
+
 
     /**
      * Manage mapping from stops to markers using a map from stops to markers.

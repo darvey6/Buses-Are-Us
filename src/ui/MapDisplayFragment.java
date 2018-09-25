@@ -15,6 +15,7 @@ import ca.ubc.cs.cpsc210.translink.model.StopManager;
 import ca.ubc.cs.cpsc210.translink.parsers.RouteMapParser;
 import ca.ubc.cs.cpsc210.translink.parsers.StopParser;
 import ca.ubc.cs.cpsc210.translink.parsers.exception.StopDataMissingException;
+import ca.ubc.cs.cpsc210.translink.util.LatLon;
 import org.json.JSONException;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.bonuspack.overlays.MapEventsOverlay;
@@ -295,6 +296,10 @@ public class MapDisplayFragment extends Fragment implements MapEventsReceiver, I
      * @param location the location of the user
      */
     private void handleLocationChange(Location location) {
+        currentLocation = location;
+        LatLon latLon = new LatLon(location.getLatitude(), location.getLongitude());
+        busStopPlotter.updateMarkerOfNearest(stopManager.findNearestTo(latLon));
+        locationListener.onLocationChanged(stopManager.findNearestTo(latLon),latLon);
         // TODO: complete the implementation of this method (Task 6)
 
     }

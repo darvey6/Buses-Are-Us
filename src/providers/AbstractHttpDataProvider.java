@@ -75,4 +75,5 @@ public abstract class AbstractHttpDataProvider implements DataProvider {
      * @throws MalformedURLException when URL is malformed
      */
     protected abstract URL getUrl() throws MalformedURLException;
+
 }

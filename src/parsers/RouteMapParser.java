@@ -14,7 +14,8 @@ import java.util.List;
 /**
  * Parser for routes stored in a compact format in a txt file
  */
-public class RouteMapParser {
+public class
+RouteMapParser {
     private String fileName;
 
     public RouteMapParser(String fileName) {

@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import ca.ubc.cs.cpsc210.translink.model.Stop;
 import ca.ubc.cs.cpsc210.translink.model.StopManager;
+import ca.ubc.cs.cpsc210.translink.model.exception.StopException;
 import ca.ubc.cs.cpsc210.translink.parsers.ArrivalsParser;
 import ca.ubc.cs.cpsc210.translink.parsers.BusParser;
 import ca.ubc.cs.cpsc210.translink.parsers.exception.ArrivalsDataMissingException;
@@ -45,6 +46,7 @@ public class BusesAreUs extends Activity implements LocationListener, StopSelect
         context = getApplicationContext();
         super.onCreate(savedInstanceState);
         Log.i(TSA_TAG, "onCreate");
+        Log.i("BusesAreUs.onCreate","Ali is here");
 
         setContentView(R.layout.map_layout);
         myNearestStop = null;
@@ -110,6 +112,11 @@ public class BusesAreUs extends Activity implements LocationListener, StopSelect
     @Override
     public void onLocationChanged(Stop nearest, LatLon locn) {
         // TODO: Complete the implementation of this method (Task 6)
+        if (nearest == null) {
+            nearestStopLabel.setText("Out of Range");
+        } else {
+            nearestStopLabel.setText(nearest.getName());
+        }
     }
 
     @Override
@@ -149,8 +156,24 @@ public class BusesAreUs extends Activity implements LocationListener, StopSelect
      */
     @Override
     public void onStopSelected(Stop stop) {
-        // TODO: Complete the implementation of this method (Task 7)
+        try {
+            StopManager.getInstance().setSelected(stop);
+            ConnectivityManager connMgr = (ConnectivityManager)
+                    getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+            if (networkInfo != null && networkInfo.isConnected()) {
+                new DownloadBusLocationDataTask().execute(stop);
+            } else {
+                Toast.makeText(this, "Unable to establish network connection!", Toast.LENGTH_LONG).show();
+            }
+
+        } catch (StopException e) {
+            e.printStackTrace();
+        }
+
     }
+        // TODO: Complete the implementation of this method (Task 7)
+
 
     /**
      * Return a scaling factor for resources that should stay "about the same size" on the screen
@@ -220,6 +243,7 @@ public class BusesAreUs extends Activity implements LocationListener, StopSelect
 
             try {
                 response = dataProvider.dataSourceToString();
+                Log.i("onPreExecute", "response is: " + response);
             } catch (Exception e) {
                 Log.d(BusesAreUs.TSA_TAG, e.getMessage(), e);
                 Toast.makeText(getApplicationContext(), "Error downloading Translink data", Toast.LENGTH_LONG).show();
